@@ -269,21 +269,35 @@ public class MainFrame extends JFrame {
     // ==========================================================
     // HALAMAN 3: INPUT DATA
     // ==========================================================
-    // ===== INPUT PANEL (VALIDASI ANGKA) =====
+// ===== INPUT PANEL (VALIDASI ID & TANGGAL) =====
     JPanel inputPanel(){
         JPanel p = new JPanel(new GridLayout(7,2,10,10));
         p.setBackground(softBg);
         p.setBorder(BorderFactory.createEmptyBorder(20,50,20,50));
 
+        // Default tanggal hari ini
         inpDate.setText(LocalDate.now().toString());
 
-        // --- FITUR BARU: Mencegah Huruf di Kolom ID ---
+        // --- VALIDASI 1: ID (Hanya Angka) ---
         inpId.addKeyListener(new KeyAdapter() {
             @Override
             public void keyTyped(KeyEvent e) {
                 char c = e.getKeyChar();
-                // Jika yang diketik BUKAN angka, batalkan (consume)
-                if (!Character.isDigit(c)) {
+                if (!Character.isDigit(c)) { 
+                    e.consume(); // Tolak selain angka
+                }
+            }
+        });
+
+        // --- VALIDASI 2: TANGGAL (Hanya Angka & Strip) ---
+        // Supaya bisa ketik "2025-12-12" atau "2025"
+        inpDate.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyTyped(KeyEvent e) {
+                char c = e.getKeyChar();
+                // Izinkan Angka (0-9) ATAU Tanda Strip (-)
+                // Karakter lain (termasuk huruf) akan ditolak
+                if (!Character.isDigit(c) && c != '-') {
                     e.consume();
                 }
             }
@@ -294,29 +308,33 @@ public class MainFrame extends JFrame {
         JButton upd = new JButton("Update");
         JButton clear = new JButton("Clear Form");
 
-        p.add(new JLabel("ID (Angka)")); p.add(inpId); // Label diperjelas
+        p.add(new JLabel("ID (Angka)")); p.add(inpId);
         p.add(new JLabel("Judul Anime")); p.add(inpTitle);
         p.add(new JLabel("Genre")); p.add(inpGenre);
-        p.add(new JLabel("Release Date")); p.add(inpDate);
+        p.add(new JLabel("Release Date (Format: YYYY-MM-DD)")); p.add(inpDate); // Label diperjelas
         p.add(add); p.add(del);
         p.add(upd); p.add(clear);
 
         // --- LOGIKA TAMBAH ---
         add.addActionListener(e -> {
-            // 1. Cek Kosong
             if(inpId.getText().isEmpty() || inpTitle.getText().isEmpty()){
                 JOptionPane.showMessageDialog(this, "ID dan Judul wajib diisi!");
                 return;
             }
 
-            // 2. VALIDASI ANGKA (Penting!)
-            // Regex "[0-9]+" artinya: Pastikan isinya hanya angka 0 sampai 9
+            // Cek ID harus Angka
             if (!inpId.getText().matches("[0-9]+")) {
-                JOptionPane.showMessageDialog(this, "ID harus berupa angka saja!", "Error Input", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this, "ID harus berupa angka!", "Error Input", JOptionPane.ERROR_MESSAGE);
                 return;
             }
 
-            // 3. Cek Duplikasi ID
+            // Cek Tanggal (Hanya boleh angka dan -)
+            if (!inpDate.getText().matches("[0-9\\-]+")) {
+                JOptionPane.showMessageDialog(this, "Tanggal hanya boleh berisi Angka dan Strip (-)", "Error Input", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            // Cek Duplikasi ID
             for(Anime a : repo.getAll()){
                 if(a.getId().equals(inpId.getText())){
                     JOptionPane.showMessageDialog(this, "ID sudah ada! Gunakan tombol Update.");
@@ -324,7 +342,6 @@ public class MainFrame extends JFrame {
                 }
             }
 
-            // Simpan
             repo.add(new Anime(inpId.getText(),inpTitle.getText(),
                     inpGenre.getSelectedItem().toString(),inpDate.getText()));
             JOptionPane.showMessageDialog(this,"Berhasil Ditambahkan!");
@@ -346,10 +363,10 @@ public class MainFrame extends JFrame {
         // --- LOGIKA UPDATE ---
         upd.addActionListener(e -> {
             if(inpId.getText().isEmpty()) return;
-
-            // Validasi Angka juga di sini (jaga-jaga)
-            if (!inpId.getText().matches("[0-9]+")) {
-                JOptionPane.showMessageDialog(this, "ID harus berupa angka!", "Error Input", JOptionPane.ERROR_MESSAGE);
+            
+            // Validasi lagi saat update
+            if (!inpDate.getText().matches("[0-9\\-]+")) {
+                JOptionPane.showMessageDialog(this, "Tanggal tidak valid (Hanya Angka & Strip)!", "Error Input", JOptionPane.ERROR_MESSAGE);
                 return;
             }
 
